@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 )
 
@@ -15,10 +16,12 @@ func Write2File(data WriteFileStruct) error {
 		err error
 	)
 	if f, err = os.OpenFile(data.Where, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
+		log.Println(err)
 		return err
 	}
 	defer f.Close()
 	if _, err = f.WriteString(data.Data + "\n"); err != nil {
+		log.Println(err)
 		return err
 	}
 	return nil
