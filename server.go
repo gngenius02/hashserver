@@ -50,33 +50,33 @@ func main() {
 	app.Use(cors.New())
 	app.Get("api/million/:id", func(c *fiber.Ctx) error {
 		length := 1000000 + 1
-		hash := c.Params("id")
+		firstValue := c.Params("id")
 
 		hashArr := make(HashArray, length)
-		hashArr[0] = hash
+		hashArr[0] = firstValue
 		hashArr.generateHashValues()
 
-		lastItem := hashArr.getLastItem()
-		resp, err := redis.CheckExist(&hashArr)
+		lastValue := hashArr.getLastItem()
+		exists, err := redis.CheckExist(&hashArr)
 
 		if err != nil {
 			log.Println("error checking if entry exists in redis or writing to db.", err)
-			return c.JSON(err)
+			return c.Next()
 		}
 
-		if resp > 0 {
-			val, err := redis.GetData(&hashArr)
+		if exists > 0 {
+			foundVal, err := redis.GetData(&hashArr)
 			if err != nil {
 				return c.Next()
 			}
-			go Write2File(WriteFileStruct{fmt.Sprintf("seed: %v, hash: %v, lastItem: %v", val, hash, lastItem), "/home/node/foundhashes.csv"})
-			return c.JSON(&response{true, val, hash})
+			go Write2File(WriteFileStruct{fmt.Sprintf("seed: %v, hash: %v, lastItem: %v", foundVal, firstValue, lastValue), "/home/node/foundhashes.csv"})
+			return c.JSON(&response{true, foundVal, firstValue})
 		}
-		go Write2File(WriteFileStruct{hash + "," + lastItem, "/home/node/newhashes.csv"})
-		return c.JSON(&response{false, "", hash})
+		go Write2File(WriteFileStruct{firstValue + "," + lastValue, "/home/node/newhashes.csv"})
+		return c.JSON(&response{false, "", firstValue})
 	})
 	app.Use(func(c *fiber.Ctx) error {
 		return c.SendStatus(404)
 	})
-	log.Fatal(app.Listen(":4444"))
+	log.Fatal(app.Listen(":3000"))
 }
