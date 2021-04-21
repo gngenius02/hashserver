@@ -69,8 +69,10 @@ func main() {
 			if err != nil {
 				return c.Next()
 			}
-			go Write2File(WriteFileStruct{fmt.Sprintf("seed: %v, hash: %v, lastItem: %v", foundVal, firstValue, lastValue), "/home/node/foundhashes.csv"})
-			return c.JSON(&response{true, foundVal, firstValue})
+			if foundVal != nil {
+				go Write2File(WriteFileStruct{fmt.Sprintf("seed: %v, hash: %v, lastItem: %v", foundVal, firstValue, lastValue), "/home/node/foundhashes.csv"})
+				return c.JSON(&response{true, foundVal, firstValue})
+			}
 		}
 		go Write2File(WriteFileStruct{firstValue + "," + lastValue, "/home/node/newhashes.csv"})
 		return c.JSON(&response{false, "", firstValue})
