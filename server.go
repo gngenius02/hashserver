@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -17,19 +18,33 @@ type response struct {
 	Hash  string      `json:"hash"`
 }
 
-func toHex(s [32]byte) string {
-	return hex.EncodeToString(s[:])
-}
-
-func (hashArr *HashArray) generateHashValues() {
-	var hash string
-	for i := 1; i < len(*hashArr); i++ {
-		hash = toHex(sha256.Sum256([]byte((*hashArr)[i-1])))
-		(*hashArr)[i] = hash
+func (h *HashArray) hashThem() {
+	gets256 := func(s string) string {
+		dig := sha256.Sum256([]byte(s))
+		return hex.EncodeToString(dig[:])
+	}
+	getmd5 := func(s string) string {
+		dig := md5.Sum([]byte(s))
+		return hex.EncodeToString(dig[:])
+	}
+	ha := *h
+	for i := 1; i < len(ha); i++ {
+		ha[i] = gets256(ha[i-1])
+	}
+	for i := 1; i < len(ha); i++ {
+		ha[i] = getmd5(ha[i])
 	}
 }
-func (hashArr *HashArray) getLastItem() string {
-	return (*hashArr)[len(*hashArr)-1]
+
+func (h *HashArray) getLastItem() string {
+	return (*h)[len(*h)-1]
+}
+
+func checkError(e error) {
+	if e != nil {
+		log.Fatal(e)
+		// log.Println("error checking if entry exists in redis or writing to db.", err)
+	}
 }
 
 func main() {
@@ -54,21 +69,16 @@ func main() {
 
 		hashArr := make(HashArray, length)
 		hashArr[0] = firstValue
-		hashArr.generateHashValues()
+		hashArr.hashThem()
 
 		lastValue := hashArr.getLastItem()
 		exists, err := redis.CheckExist(&hashArr)
-
-		if err != nil {
-			log.Println("error checking if entry exists in redis or writing to db.", err)
-			return c.Next()
-		}
+		checkError(err)
 
 		if exists > 0 {
 			foundVal, err := redis.GetData(&hashArr)
-			if err != nil {
-				return c.Next()
-			}
+			checkError(err)
+
 			if foundVal != nil {
 				go Write2File(WriteFileStruct{fmt.Sprintf("seed: %v, hash: %v, lastItem: %v", foundVal, firstValue, lastValue), "/home/node/foundhashes.csv"})
 				return c.JSON(&response{true, foundVal, firstValue})
