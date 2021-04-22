@@ -63,6 +63,13 @@ func main() {
 		Prefork: true,
 	})
 	app.Use(cors.New())
+	app.Get("api/getdbsize", func(c *fiber.Ctx) error {
+		dbsize, e := redis.client.DBSize(redis.client.Context()).Result()
+		if e != nil {
+			return c.Next()
+		}
+		return c.JSON(dbsize * 1000000)
+	})
 	app.Get("api/million/:id", func(c *fiber.Ctx) error {
 		length := 1000000 + 1
 		firstValue := c.Params("id")
