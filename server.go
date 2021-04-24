@@ -36,7 +36,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() / 4)
 
 	var (
-		redis         *Client
+		clients       [8]Client
 		foundFile     *Fs
 		newHashesFile *Fs
 		err           error
@@ -44,10 +44,14 @@ func main() {
 		newPath       string = "/home/node/newhashes.csv"
 	)
 
-	if redis, err = NewRedisClient(); err != nil {
-		log.Fatal("Couldnt connect to redis instance", err)
+	for i := range clients {
+		var redis *Client
+		if redis, err = NewRedisClient(); err != nil {
+			log.Fatal("Couldnt connect to redis instance", err)
+		}
+		clients[i] = *redis
+		defer clients[i].client.Close()
 	}
-	defer redis.client.Close()
 
 	if foundFile, err = FileOpen(foundPath); err != nil {
 		log.Fatal("Couldnt open file", foundPath, err)
@@ -59,11 +63,20 @@ func main() {
 	}
 	defer newHashesFile.CloseFile()
 
+	counter := 0
+
+	pickClient := func() *Client {
+		counter = counter + 1
+		return &clients[counter%8]
+	}
+
 	app := fiber.New(fiber.Config{
 		Prefork: true,
 	})
 	app.Use(cors.New())
+
 	app.Get("api/getdbsize", func(c *fiber.Ctx) error {
+		redis := pickClient()
 		dbsize, err := redis.client.DBSize(redis.client.Context()).Result()
 		if err != nil {
 			return c.Next()
@@ -80,12 +93,13 @@ func main() {
 		h.getHashes()
 
 		lastValue := h.getLastItem()
+		redis := pickClient()
 		foundVal, err := redis.GetData(&h)
 		if err != nil {
 			return c.Next()
 		}
 
-		if foundVal != nil {
+		if foundVal != nil && foundVal != firstValue {
 			go foundFile.Write2File(fmt.Sprintf("seed: %v, hash: %v, lastItem: %v", foundVal, firstValue, lastValue))
 			return c.JSON(&response{true, foundVal, firstValue})
 		}
