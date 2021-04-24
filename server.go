@@ -36,13 +36,28 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() / 4)
 
 	var (
-		redis *Client
-		err   error
+		redis         *Client
+		foundFile     *Fs
+		newHashesFile *Fs
+		err           error
+		foundPath     string = "/home/node/found.csv"
+		newPath       string = "/home/node/newhashes.csv"
 	)
 
 	if redis, err = NewRedisClient(); err != nil {
 		log.Fatal("Couldnt connect to redis instance", err)
 	}
+	defer redis.client.Close()
+
+	if foundFile, err = FileOpen(foundPath); err != nil {
+		log.Fatal("Couldnt open file", foundPath, err)
+	}
+	defer foundFile.CloseFile()
+
+	if newHashesFile, err = FileOpen(newPath); err != nil {
+		log.Fatal("Couldnt open file", foundPath, err)
+	}
+	defer newHashesFile.CloseFile()
 
 	app := fiber.New(fiber.Config{
 		Prefork: true,
@@ -51,7 +66,7 @@ func main() {
 	app.Get("api/getdbsize", func(c *fiber.Ctx) error {
 		dbsize, err := redis.client.DBSize(redis.client.Context()).Result()
 		if err != nil {
-			return c.SendStatus(404)
+			return c.Next()
 		}
 		return c.JSON(dbsize * 1000000)
 	})
@@ -67,15 +82,15 @@ func main() {
 		lastValue := h.getLastItem()
 		foundVal, err := redis.GetData(&h)
 		if err != nil {
-			return c.SendStatus(404)
+			return c.Next()
 		}
 
 		if foundVal != nil {
-			go Write2File(WriteFileStruct{fmt.Sprintf("seed: %v, hash: %v, lastItem: %v", foundVal, firstValue, lastValue), "/home/node/foundhashes.csv"})
+			go foundFile.Write2File(fmt.Sprintf("seed: %v, hash: %v, lastItem: %v", foundVal, firstValue, lastValue))
 			return c.JSON(&response{true, foundVal, firstValue})
 		}
 
-		go Write2File(WriteFileStruct{firstValue + "," + lastValue, "/home/node/newhashes.csv"})
+		go newHashesFile.Write2File(firstValue + "," + lastValue)
 		return c.JSON(&response{false, "", firstValue})
 	})
 	app.Use(func(c *fiber.Ctx) error {

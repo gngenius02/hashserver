@@ -1,28 +1,25 @@
 package main
 
 import (
-	"log"
 	"os"
 )
 
-type WriteFileStruct struct {
-	Data  string
-	Where string
+type Fs struct {
+	file *os.File
 }
 
-func Write2File(data WriteFileStruct) error {
-	var (
-		f   *os.File
-		err error
-	)
-	if f, err = os.OpenFile(data.Where, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
-		log.Println(err)
-		return err
-	}
-	defer f.Close()
-	if _, err = f.WriteString(data.Data + "\n"); err != nil {
-		log.Println(err)
+func FileOpen(path string) (*Fs, error) {
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	return &Fs{file}, err
+}
+
+func (f *Fs) Write2File(d string) error {
+	if _, err := f.file.WriteString(d + "\n"); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (f *Fs) CloseFile() error {
+	return f.file.Close()
 }
