@@ -51,7 +51,7 @@ func (h *HashArray) hex2b64(){
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() / 4)
+	runtime.GOMAXPROCS(128)
 
 	var (
 		clients       [8]Client
