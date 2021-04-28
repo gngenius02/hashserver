@@ -33,14 +33,20 @@ func (h *HashArray) getLastItem() string {
 	return (*h)[len(*h)-1]
 }
 
+func h2b(s string)string{
+	b, _ := hex.DecodeString(s)
+	return base64.RawStdEncoding.EncodeToString(b)
+}
+
+func b2h(s string) string{
+	b, _ := base64.RawStdEncoding.DecodeString(s)
+	return hex.EncodeToString(b)
+}
+
 func (h *HashArray) hex2b64(){
-	convert := func (s string) string {
-		b, _ := hex.DecodeString(s)
-		return base64.RawStdEncoding.EncodeToString(b)
-	}
         for i := 0; i < len(*h); i++ {
                 if len((*h)[i]) != 64{ continue }
-		(*h)[i] = convert((*h)[i])
+		(*h)[i] = h2b((*h)[i])
         }
 }
 
@@ -112,12 +118,12 @@ func main() {
 			return c.Next()
 		}
 
-		if foundVal != nil && foundVal != firstValue {
+		if foundVal != nil && foundVal != h2b(firstValue) {
 			go foundFile.Write2File(fmt.Sprintf("seed: %v, hash: %v, lastItem: %v", foundVal, firstValue, lastValue))
 			return c.JSON(&response{true, foundVal, firstValue})
 		}
 
-		go newHashesFile.Write2File(firstValue + "," + lastValue)
+		go newHashesFile.Write2File(firstValue + "," + b2h(fmt.Sprintf("%v", lastValue) ))
 		return c.JSON(&response{false, "", firstValue})
 	})
 	app.Use(func(c *fiber.Ctx) error {
