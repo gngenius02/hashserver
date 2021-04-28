@@ -1,4 +1,4 @@
-module hashServer
+module startgoserver
 
 go 1.16
 

@@ -24,9 +24,9 @@ func NewRedisClient() (*Client, error) {
 		Addr:         ":6379",
 		Password:     "",
 		DB:           0,
-		MaxRetries:   10,
-		ReadTimeout:  time.Duration(30) * time.Second,
-		WriteTimeout: time.Duration(30) * time.Second,
+		MaxRetries:   20,
+		ReadTimeout:  time.Duration(1) * time.Minute,
+		WriteTimeout: time.Duration(1) * time.Minute,
 		PoolSize:     4,
 	})
 	return &Client{
@@ -61,13 +61,3 @@ func (c *Client) GetData(h *HashArray) (interface{}, error) {
 	go c.setData(InsertData{(*h)[0], (*h)[len(*h)-1], time.Duration(0)})
 	return response.checkResponseValues(), nil
 }
-
-// func (c *Client) CheckExist(h *HashArray) (int64, error) {
-// 	rdb, ha := c.client, *h
-
-// 	dbResp, err := rdb.Exists(rdb.Context(), ha...).Result()
-
-// 	go c.setData(InsertData{ha[0], ha[len(ha)-1], time.Duration(0)})
-
-// 	return dbResp, err
-// }
