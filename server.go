@@ -2,8 +2,8 @@ package main
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"runtime"
@@ -33,28 +33,30 @@ func (h *HashArray) getLastItem() string {
 	return (*h)[len(*h)-1]
 }
 
-func h2b(s string)string{
+func h2b(s string) string {
 	b, _ := hex.DecodeString(s)
 	return base64.RawStdEncoding.EncodeToString(b)
 }
 
-func b2h(s string) string{
+func b2h(s string) string {
 	b, _ := base64.RawStdEncoding.DecodeString(s)
 	return hex.EncodeToString(b)
 }
 
-func (h *HashArray) hex2b64(){
-        for i := 0; i < len(*h); i++ {
-                if len((*h)[i]) != 64{ continue }
+func (h *HashArray) hex2b64() {
+	for i := 0; i < len(*h); i++ {
+		if len((*h)[i]) != 64 {
+			continue
+		}
 		(*h)[i] = h2b((*h)[i])
-        }
+	}
 }
 
 func main() {
 	runtime.GOMAXPROCS(128)
 
 	var (
-		clients       [8]Client
+		redis         *Client
 		foundFile     *Fs
 		newHashesFile *Fs
 		err           error
@@ -62,14 +64,10 @@ func main() {
 		newPath       string = "/home/node/newhashes.csv"
 	)
 
-	for i := range clients {
-		var redis *Client
-		if redis, err = NewRedisClient(); err != nil {
-			log.Fatal("Couldnt connect to redis instance", err)
-		}
-		clients[i] = *redis
-		defer clients[i].client.Close()
+	if redis, err = NewRedisClient(); err != nil {
+		log.Fatal("Couldnt connect to redis instance", err)
 	}
+	defer redis.client.Close()
 
 	if foundFile, err = FileOpen(foundPath); err != nil {
 		log.Fatal("Couldnt open file", foundPath, err)
@@ -81,20 +79,12 @@ func main() {
 	}
 	defer newHashesFile.CloseFile()
 
-	counter := 0
-
-	pickClient := func() *Client {
-		counter = counter + 1
-		return &clients[counter%8]
-	}
-
 	app := fiber.New(fiber.Config{
 		Prefork: true,
 	})
 	app.Use(cors.New())
 
 	app.Get("api/getdbsize", func(c *fiber.Ctx) error {
-		redis := pickClient()
 		dbsize, err := redis.client.DBSize(redis.client.Context()).Result()
 		if err != nil {
 			return c.Next()
@@ -112,7 +102,6 @@ func main() {
 		h.hex2b64()
 
 		lastValue := h.getLastItem()
-		redis := pickClient()
 		foundVal, err := redis.GetData(&h)
 		if err != nil {
 			return c.Next()
@@ -123,7 +112,7 @@ func main() {
 			return c.JSON(&response{true, foundVal, firstValue})
 		}
 
-		go newHashesFile.Write2File(firstValue + "," + b2h(fmt.Sprintf("%v", lastValue) ))
+		go newHashesFile.Write2File(firstValue + "," + b2h(fmt.Sprintf("%v", lastValue)))
 		return c.JSON(&response{false, "", firstValue})
 	})
 	app.Use(func(c *fiber.Ctx) error {

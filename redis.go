@@ -27,7 +27,6 @@ func NewRedisClient() (*Client, error) {
 		MaxRetries:   20,
 		ReadTimeout:  time.Duration(1) * time.Minute,
 		WriteTimeout: time.Duration(1) * time.Minute,
-		PoolSize:     4,
 	})
 	return &Client{
 		client: client,
