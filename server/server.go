@@ -124,7 +124,7 @@ func (s *Server) HandleMessageFn(c *net.Conn, incomming []byte) {
 	var replyMsg []byte
 	msg := incomming
 
-	fmt.Println("Message received:", string(incomming))
+//	log.Println("Message received:", string(incomming))
 	_, ok := s.m.GET(string(msg))
 	if ok {
 		replyMsg, _ = json.Marshal(rWriter{Found: ok, Input: fv, FinalHash: string(msg)})
