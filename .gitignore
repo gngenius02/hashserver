@@ -14,3 +14,8 @@ hashServer
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+deletedcode.txt
+parallel/
+*.csv
+redis.go
+writeFiles.go
