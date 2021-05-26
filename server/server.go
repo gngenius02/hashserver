@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime"
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
@@ -152,7 +151,7 @@ func (s *Server) HandleMessageFn(c *net.Conn, incomming []byte) {
 	replyMsg = nil
 	msg = nil
 	incomming = nil
-//	runtime.GC()
+	//	runtime.GC()
 }
 
 //
