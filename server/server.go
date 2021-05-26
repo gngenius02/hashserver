@@ -142,17 +142,17 @@ func (s *Server) HandleMessageFn(c *net.Conn, incomming []byte) {
 		}
 	}
 
+	go s.m.SET(string(msg), struct{}{})
+
 	/* not Found */
 	replyMsg, _ = json.Marshal(rWriter{Input: fv})
 	sendWebsocketMessage(c, &replyMsg)
-
-	s.m.SET(string(msg), struct{}{})
 
 	s.saveNewEntries(fmt.Sprintf("%s,%s\n", fv, string(msg)))
 	replyMsg = nil
 	msg = nil
 	incomming = nil
-	runtime.GC()
+//	runtime.GC()
 }
 
 //

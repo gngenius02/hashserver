@@ -68,7 +68,7 @@ func LOAD(dirname string) error {
 }
 
 func main() {
-	runtime.GOMAXPROCS(128)
+	runtime.GOMAXPROCS(24)
 	dataLoc := os.Getenv("DBSTORE_PATH")
 	if dataLoc == "" {
 		dataLoc, _ = os.Getwd()
@@ -78,6 +78,7 @@ func main() {
 	}
 	LOAD(dataLoc)
 	wg.Wait()
+	debug.FreeOSMemory()
 	// LOAD("/var/lib/redis/shardedmapdb/")
 	server.InitServer(&m, dataLoc)
 }
