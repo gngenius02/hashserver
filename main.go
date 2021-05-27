@@ -19,12 +19,6 @@ var (
 	wg sync.WaitGroup
 )
 
-// func getFileName(path string) string {
-// 	arr := strings.Split(path, "/")
-// 	filename := arr[len(arr)-1]
-// 	return strings.Split(filename, ".")[0]
-// }
-
 func scanFile(dbfile string) error {
 	fmt.Println(dbfile)
 	f, err := os.OpenFile(dbfile, os.O_RDONLY, 0644)
@@ -80,6 +74,6 @@ func main() {
 	LOAD(dataLoc)
 	wg.Wait()
 	debug.FreeOSMemory()
-	// LOAD("/var/lib/redis/shardedmapdb/")
+
 	server.InitServer(&m, dataLoc)
 }
