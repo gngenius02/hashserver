@@ -119,6 +119,20 @@ func (s *Server) saveNewEntries(str string) error {
 	}
 }
 
+func (s *Server) saveFoundEntries(str string) error {
+        path := s.saveLoc + "found.csv"
+        if file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
+                return err
+        } else {
+                defer file.Close()
+                if _, err := file.WriteString(str); err != nil {
+                        return err
+                }
+                return nil
+        }
+}
+
+
 func (s *Server) HandleMessageFn(c *net.Conn, incomming []byte) {
 	var fv = string(incomming)
 	var replyMsg []byte
@@ -129,15 +143,17 @@ func (s *Server) HandleMessageFn(c *net.Conn, incomming []byte) {
 	if ok {
 		replyMsg, _ = json.Marshal(rWriter{Found: ok, Input: fv, FinalHash: string(msg)})
 		sendWebsocketMessage(c, &replyMsg)
+                s.saveFoundEntries(fmt.Sprintf("reqValue: %s,hashFound: %s, iValue: %d", fv,string(msg), -1))
 		return
 	}
 	for i := 0; i < 1000000; i++ {
 		hashit(&msg)
-		if (i == 999999){ break }
 		_, ok := s.m.GET(string(msg))
 		if ok {
+			if (i == 999999){ break }
 			replyMsg, _ = json.Marshal(rWriter{Found: ok, Input: fv, FinalHash: string(msg)})
 			sendWebsocketMessage(c, &replyMsg)
+			s.saveFoundEntries(fmt.Sprintf("reqValue: %s,hashFound: %s, iValue: %d", fv,string(msg), i))
 			return
 		}
 	}
