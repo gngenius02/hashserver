@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
@@ -20,6 +21,7 @@ type Server struct {
 	port    string
 	m       *shardmap.Map
 	saveLoc string
+	counter uint16
 }
 
 var s *Server
@@ -38,7 +40,7 @@ func InitServer(m *shardmap.Map, dataLoc string) {
 	} else {
 		go s.listenForConnections()
 		http.HandleFunc("/", s.wsHandler)
-		if err := http.ListenAndServe("0.0.0.0:"+port, nil); err != nil {
+		if err := http.ListenAndServe("localhost:"+port, nil); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -120,52 +122,60 @@ func (s *Server) saveNewEntries(str string) error {
 }
 
 func (s *Server) saveFoundEntries(str string) error {
-        path := s.saveLoc + "found.csv"
-        if file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
-                return err
-        } else {
-                defer file.Close()
-                if _, err := file.WriteString(str); err != nil {
-                        return err
-                }
-                return nil
-        }
+	path := s.saveLoc + "found.csv"
+	if file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
+		return err
+	} else {
+		defer file.Close()
+		if _, err := file.WriteString(str); err != nil {
+			return err
+		}
+		return nil
+	}
 }
-
 
 func (s *Server) HandleMessageFn(c *net.Conn, incomming []byte) {
 	var fv = string(incomming)
 	var replyMsg []byte
 	msg := incomming
 
-//	log.Println("Message received:", string(incomming))
+	//	log.Println("Message received:", string(incomming))
 	_, ok := s.m.GET(string(msg))
 	if ok {
 		replyMsg, _ = json.Marshal(rWriter{Found: ok, Input: fv, FinalHash: string(msg)})
 		sendWebsocketMessage(c, &replyMsg)
-                s.saveFoundEntries(fmt.Sprintf("reqValue: %s,hashFound: %s, iValue: %d", fv,string(msg), -1))
+		s.saveFoundEntries(fmt.Sprintf("reqValue: %s,hashFound: %s, iValue: %d", fv, string(msg), -1))
 		return
 	}
 	for i := 0; i < 1000000; i++ {
 		hashit(&msg)
 		_, ok := s.m.GET(string(msg))
 		if ok {
-			if (i == 999999){ break }
+			if i == 999999 {
+				break
+			}
 			replyMsg, _ = json.Marshal(rWriter{Found: ok, Input: fv, FinalHash: string(msg)})
 			sendWebsocketMessage(c, &replyMsg)
-			s.saveFoundEntries(fmt.Sprintf("reqValue: %s,hashFound: %s, iValue: %d", fv,string(msg), i))
+			s.saveFoundEntries(fmt.Sprintf("reqValue: %s,hashFound: %s, iValue: %d", fv, string(msg), i))
 			return
 		}
 	}
 
-	go s.m.SET(string(msg), struct{}{})
+	s.m.SET(string(msg), struct{}{})
 
 	/* not Found */
 	replyMsg, _ = json.Marshal(rWriter{Input: fv})
 	sendWebsocketMessage(c, &replyMsg)
 
 	s.saveNewEntries(fmt.Sprintf("%s,%s\n", fv, string(msg)))
+
 	replyMsg = nil
 	msg = nil
 	incomming = nil
+
+	s.counter += 1
+	if s.counter >= 100 {
+		runtime.GC()
+		s.counter = 0
+	}
 }

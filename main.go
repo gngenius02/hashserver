@@ -9,9 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
-	"runtime/debug"
 )
 
 var (
@@ -63,17 +63,18 @@ func LOAD(dirname string) error {
 }
 
 func main() {
-	runtime.GOMAXPROCS(24)
+	runtime.GOMAXPROCS(0)
 	dataLoc := os.Getenv("DBSTORE_PATH")
 	if dataLoc == "" {
 		dataLoc, _ = os.Getwd()
 	}
 	if !strings.HasSuffix(dataLoc, "/") {
-		dataLoc = dataLoc + "/"
+		dataLoc = dataLoc + "/data/"
+	} else {
+		dataLoc = dataLoc + "data/"
 	}
 	LOAD(dataLoc)
 	wg.Wait()
 	debug.FreeOSMemory()
-
 	server.InitServer(&m, dataLoc)
 }

@@ -16,6 +16,7 @@ hashServer
 # vendor/
 deletedcode.txt
 parallel/
+data/
 *.csv
 redis.go
 writeFiles.go
