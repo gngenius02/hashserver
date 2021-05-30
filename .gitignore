@@ -13,10 +13,13 @@
 hashServer
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/
 deletedcode.txt
 parallel/
 data/
 *.csv
 redis.go
 writeFiles.go
+vendor/
+hashing/
+*.old
